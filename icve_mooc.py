@@ -203,6 +203,7 @@ def finish_all(im: IcveMooc):
         finish_course(im, coid)
         finish_exam(im, coid, 0)
         finish_exam(im, coid, 1)
+        finish_exam(im, coid, 2)
 
 
 username = input('username:')
