@@ -146,32 +146,34 @@ class IcveMooc:
         return resp_data
 
 
-def finish_course(im: IcveMooc, coid):
+def finish_course(im: IcveMooc, coid, **kwargs):
+    ignore_finish = kwargs.get('ignore_finish', False)
+    x_video_long = kwargs.get('x_video_long', False)
     for module in im.module_list(coid):
         mid = module['id']
-        if module['percent'] < 100:
+        if module['percent'] < 100 or ignore_finish:
             print('module', module)
             for topic in im.topic_list(coid, mid):
-                if topic['studyStatus'] != 1:
+                if topic['studyStatus'] != 1 or ignore_finish:
                     print('topic', topic)
                     for cell in im.cell_list(coid, topic['id']):
                         if 'childNodeList' in cell.keys() and len(cell['childNodeList']) > 0:
                             for child in cell['childNodeList']:
-                                if not child['isStudyFinish']:
+                                if not child['isStudyFinish'] or ignore_finish:
                                     cid = child['Id']
                                     data = im.study_view(coid, cid, mid)['courseCell']
                                     s_type = '888' if data['IsAllowDownLoad'] else '1229'
-                                    result = im.study_process(coid, mid, cid, data['VideoTimeLong'],
-                                                              data['VideoTimeLong'],
+                                    result = im.study_process(coid, mid, cid, data['VideoTimeLong'] * x_video_long,
+                                                              data['VideoTimeLong'] * x_video_long,
                                                               s_type)
                                     print('cell_child', result, child['cellName'])
                         else:
-                            if not cell['isStudyFinish']:
+                            if not cell['isStudyFinish'] or ignore_finish:
                                 cid = cell['Id']
                                 data = im.study_view(coid, cid, mid)['courseCell']
                                 s_type = '888' if data['IsAllowDownLoad'] else '1229'
-                                result = im.study_process(coid, mid, cid, data['VideoTimeLong'],
-                                                          data['VideoTimeLong'],
+                                result = im.study_process(coid, mid, cid, data['VideoTimeLong'] * x_video_long,
+                                                          data['VideoTimeLong'] * x_video_long,
                                                           s_type)
                                 print('cell', result, cell['cellName'])
 
@@ -196,11 +198,11 @@ def finish_exam(im: IcveMooc, coid, e_type):
             im.exam_save(coid, eid, uid)
 
 
-def finish_all(im: IcveMooc):
+def finish_all(im: IcveMooc, **kwargs):
     for course in im.course_list:
         coid = course['id']
         print('course', course)
-        finish_course(im, coid)
+        finish_course(im, coid, **kwargs)
         finish_exam(im, coid, 0)
         finish_exam(im, coid, 1)
         finish_exam(im, coid, 2)
@@ -208,8 +210,13 @@ def finish_all(im: IcveMooc):
 
 username = input('username:')
 password = input('password:')
+ignore_finish = input('ignore_finish:') == 'True'
+if ignore_finish:
+    x_video_long = int(input('x_video_long:'))
+else:
+    x_video_long = 1
 
 im = IcveMooc()
 im.login(username, password)
 print(im.info)
-finish_all(im)
+finish_all(im, ignore_finish=ignore_finish, x_video_long=x_video_long)
